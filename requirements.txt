@@ -1,0 +1,11 @@
+requests>=2.28
+streamlit
+pandas
+numpy
+matplotlib
+seaborn
+plotly
+transformers
+sentencepiece
+transformers
+sentencepiece
