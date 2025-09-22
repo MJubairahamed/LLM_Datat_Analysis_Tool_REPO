@@ -219,13 +219,7 @@ if uploaded_file is not None:
 # Main chat interface
 if st.session_state['dataframe'] is not None:
     
-    #chat_container = st.container()
-    #with chat_container:
         for message in st.session_state['messages']:
-            # if message['role'] == 'user':
-            #     st.markdown(f"**You:** {message['content']}")
-            # else:
-            #     st.markdown(f"**App:** {message['content']}")
             with st.chat_message(message['role']):
                 st.markdown(message['content'])
                 #Re-display any saved figures
@@ -289,7 +283,8 @@ if st.session_state['dataframe'] is not None:
                 - Always add titles ad labels to plots.
             """
             # Use Hugging Face pipeline if selected and available (free model)
-            with st.chat_message("app"):
+            with st.chat_message("assistant"):
+                message_placeholder = st.empty()
                 with st.spinner("Analyzing your data..."):
                     try:
                         # detect if user explicitly requests code
@@ -308,8 +303,11 @@ if st.session_state['dataframe'] is not None:
                                     groq_out = send_groq_request(prompt=code_prompt, groq_client=groq_client, max_tokens=512)
                                     reply = groq_out
                                     display_reply = f"```python\n{reply}\n```"
-                                    st.markdown(f"**App:** {display_reply}")
+                                    #st.markdown(f"**App:** {display_reply}")
+                                    message_placeholder.markdown(f"**App:** {display_reply}")
                                     st.session_state['messages'].append({"role": "app", "content": reply})
+
+                                    
                                 else:
                                     groq_out = send_groq_request(prompt=system_prompt + "\nQuestion:" + user_question, groq_client=groq_client, max_tokens=512)
                                     reply = groq_out
@@ -344,10 +342,8 @@ if st.session_state['dataframe'] is not None:
                                                     st.pyplot(fig)
                                                     # save figure in message for persistence
                                                     st.session_state['messages'].append({"role": "app", "content": reply, "figure": fig})
-                                                    #st.session_state.message.append({"role": "app", "content": reply, "figure": fig})
                                                 else:
                                                     st.session_state['messages'].append({"role": "app", "content": reply})
-                                                    #st.session_state.message.append({"role": "app", "content": reply})
                                                     plt.close()
 
                                             except Exception as e:
