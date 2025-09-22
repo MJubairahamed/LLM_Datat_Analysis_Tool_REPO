@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 # OpenAI removed — use Hugging Face or Groq providers
 import requests
+import json
 
 
 from typing import Optional
@@ -185,9 +186,21 @@ uploaded_file = st.sidebar.file_uploader("Choose a file", type=["csv", "xlsx", "
 st.sidebar.info("👆 Upload a file to get started")
 if uploaded_file is not None:
     try:
-        df = pd.read_csv(uploaded_file) if uploaded_file.name.endswith('.csv') else \
-         pd.read_excel(uploaded_file) if uploaded_file.name.endswith('.xlsx') else \
-         pd.read_json(uploaded_file)
+        if uploaded_file.name.endswith('.csv'):
+            df = pd.read_csv(uploaded_file)
+
+        elif uploaded_file.name.endswith('.xlsx'):
+            df = pd.read_excel(uploaded_file)
+
+        elif uploaded_file.name.endswith('.json'):
+            uploaded_file.seek(0)  # Reset file pointer
+            data = json.load(uploaded_file)
+            print(type(data))
+            print(data)   
+            # Wrap in a list to make it a row in a DataFrame
+            df = pd.json_normalize([data])
+        else:
+            raise ValueError("Unsupported file format")
         
         # session_state to store dataframe
         st.session_state['dataframe'] = df
