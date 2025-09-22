@@ -194,9 +194,7 @@ if uploaded_file is not None:
 
         elif uploaded_file.name.endswith('.json'):
             uploaded_file.seek(0)  # Reset file pointer
-            data = json.load(uploaded_file)
-            print(type(data))
-            print(data)   
+            data = json.load(uploaded_file) 
             # Wrap in a list to make it a row in a DataFrame
             df = pd.json_normalize([data])
         else:
