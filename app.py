@@ -78,6 +78,7 @@ def send_groq_request(prompt: str = None, messages: list = None, groq_client: di
             else:
                 payload = {"prompt": prompt, "max_tokens": max_tokens}
 
+        
         resp = requests.post(url, headers=headers, json=payload, timeout=30)
         resp.raise_for_status()
         data = resp.json()
@@ -187,6 +188,7 @@ if uploaded_file is not None:
         df = pd.read_csv(uploaded_file) if uploaded_file.name.endswith('.csv') else \
          pd.read_excel(uploaded_file) if uploaded_file.name.endswith('.xlsx') else \
          pd.read_json(uploaded_file)
+        
         # session_state to store dataframe
         st.session_state['dataframe'] = df
 
@@ -217,13 +219,18 @@ if uploaded_file is not None:
 # Main chat interface
 if st.session_state['dataframe'] is not None:
     
-    chat_container = st.container()
-    with chat_container:
+    #chat_container = st.container()
+    #with chat_container:
         for message in st.session_state['messages']:
-            if message['role'] == 'user':
-                st.markdown(f"**You:** {message['content']}")
-            else:
-                st.markdown(f"**App:** {message['content']}")
+            # if message['role'] == 'user':
+            #     st.markdown(f"**You:** {message['content']}")
+            # else:
+            #     st.markdown(f"**App:** {message['content']}")
+            with st.chat_message(message['role']):
+                st.markdown(message['content'])
+                #Re-display any saved figures
+                if 'figure' in message:
+                    st.pyplot(message['figure'])
 
         # Chat input
         user_question = st.chat_input("Ask a question about your data...")
@@ -335,15 +342,36 @@ if st.session_state['dataframe'] is not None:
                                                 fig = plt.gcf()
                                                 if fig.get_axes():
                                                     st.pyplot(fig)
+                                                    # save figure in message for persistence
+                                                    st.session_state['messages'].append({"role": "app", "content": reply, "figure": fig})
+                                                    #st.session_state.message.append({"role": "app", "content": reply, "figure": fig})
+                                                else:
+                                                    st.session_state['messages'].append({"role": "app", "content": reply})
+                                                    #st.session_state.message.append({"role": "app", "content": reply})
                                                     plt.close()
 
-                                            except Exception as exec_e:
-                                                st.error(f"Error executing code block: {str(exec_e)}")
+                                            except Exception as e:
+                                                error_type = type(e).__name__
+                                                st.error(f"Code execution failed: {error_type}")
+                                                
+                                                # Provide helpful context based on error type
+                                                if "NameError" in str(e):
+                                                    st.info("This might mean a column name is misspelled or doesn't exist.")
+                                                elif "TypeError" in str(e):
+                                                    st.info("This often happens when trying to plot non-numeric data.")
+                                                elif "KeyError" in str(e):
+                                                    st.info("The specified column might not exist in your dataset.")
+                                                else:
+                                                    st.info("Try rephrasing your question or check your data format.")
+                                                
+                                                st.code(code_to_exec, language="python")
+                                                st.error(f"Error executing code block: {str(e)}")
                                                 st.code(code_block, language='python')
                                                 st.info("You can copy and modify this code to fix the error.")
                                             
                                             # Save assistant response to history
                                             st.session_state['messages'].append({"role": "app", "content": reply})
+                            
                             except Exception as e:
                                 response_placeholder.markdown(f"**App:** Groq error: {str(e)}")
                                 st.error(f"Groq error: {str(e)}")
@@ -374,12 +402,27 @@ if st.session_state['dataframe'] is not None:
                     except Exception as e:
                         response_placeholder.markdown(f"**App:** Error: {str(e)}")
                         st.error(f"Error generating response: {str(e)}")
-            
-    
-      
-        # Example Questions
-        st.markdown("### Example Questions:")
-        st.markdown("- What is the summary statistics of the dataset?")
-        st.markdown("- How many missing values are there in each column?")
-        st.markdown("- Show me the distribution of a specific column.")
-        st.markdown("- Can you plot a graph of two columns?")
+
+else:    
+    # No data uploaded state
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.info("👈 Please upload a CSV file to start")
+        
+        # Example questions
+        st.markdown("### 💡 Example questions you can ask:")
+        st.markdown("""
+        - What are the main trends in my data?
+        - Show me a correlation matrix
+        - Create a bar chart of the top 10 categories
+        - What's the average value by month?
+        - Are there any outliers in the price column?
+        """)
+# footer
+st.markdown("---")
+st.markdown("""
+<div style='text-align: center; color: gray; font-size: 12px;'>
+💡 Tip: Be specific with your questions for better results | 
+🔒 Your data stays private and is not stored
+</div>
+""", unsafe_allow_html=True)
